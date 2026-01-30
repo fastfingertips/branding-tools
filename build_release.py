@@ -3,38 +3,7 @@ Release Builder for Browser Extensions
 =======================================
 
 This script automates the creation of release packages for distribution.
-
-PURPOSE:
-    Generate optimized, tarball-ready ZIP archives for different distribution channels.
-
-WHY SEPARATE PACKAGES?
-    Generating platform-specific builds is a professional standard for Cross-Browser extensions:
-    1.  Manifest Compliance: Automatically handles incompatible keys (e.g., Chrome's
-        'service_worker' vs Firefox's 'background.scripts') and required metadata like 'gecko.id'.
-    2.  UX Adaptation: Firefox has unique limitations (e.g., popups closing during file selection).
-        Separate builds allow including specific UI workarounds like 'options.html' redirection
-        without cluttering the Chrome experience.
-    3.  Store Review & Trust: Human reviewers and automated scanners (AMO/Web Store) prefer
-        clean, browser-specific code. This reduces flags, avoids 'dead code' warnings,
-        and significantly speeds up the approval cycle.
-    4.  API Consistency: Ensures that browser-specific API implementations (Promise-based
-        for Firefox vs Callback-based for Chrome) are properly scoped.
-
-OUTPUTS:
-    Creates ZIP files in the 'releases' folder:
-    - {name}-v{version}-chrome.zip  -> Minimal package for Chrome Web Store.
-    - {name}-v{version}-firefox.zip -> Optimized package for Firefox (AMO).
-    - {name}-v{version}.zip         -> Full source package for GitHub Releases.
-
-USAGE:
-    python scripts/build_release.py              # Build all
-    python scripts/build_release.py --bump patch # Increment version and build
-    python scripts/build_release.py --no-firefox # Chrome only
-
-NOTES:
-    - Metadata is sourced from manifest.json.
-    - Firefox manifest is dynamically generated from the Chrome source.
-    - Extension names are automatically slugified (e.g., "My App" -> "my-app").
+It is a generic tool designed to be run against any browser extension project.
 """
 
 import os
@@ -65,13 +34,14 @@ class Manifest:
             with open(self.path, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"Error loading manifest: {e}")
+            print(f"Error loading manifest at {self.path}: {e}")
             raise SystemExit(1)
     
     def _save(self) -> None:
         """Write manifest.json back to disk."""
         with open(self.path, 'w', encoding='utf-8') as f:
             json.dump(self._data, f, indent=4, ensure_ascii=False)
+            f.write('\n')
     
     @property
     def name(self) -> str:
@@ -105,13 +75,12 @@ class Manifest:
         """Get any manifest property."""
         return self._data.get(key, default)
     
-    def to_firefox_manifest(self) -> Dict[str, Any]:
+    def to_firefox_manifest(self, gecko_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Convert Chrome manifest to Firefox-compatible format.
         
-        Changes:
-        - Replace service_worker with background.scripts
-        - Add browser_specific_settings for Firefox
+        Args:
+            gecko_id: Optional Firefox extension ID. If not provided, checks manifest.
         
         Returns:
             dict: Firefox-compatible manifest data
@@ -125,11 +94,17 @@ class Manifest:
                 script_path = bg.pop('service_worker')
                 bg['scripts'] = [script_path]
         
-        # Add Firefox-specific settings
+        # Determine Gecko ID
+        # 1. Parameter, 2. Existing manifest, 3. Fallback
+        b_settings = firefox_data.get('browser_specific_settings', {})
+        gecko = b_settings.get('gecko', {})
+        
+        final_id = gecko_id or gecko.get('id') or f"{self.slug}@fastfingertips"
+        
         firefox_data['browser_specific_settings'] = {
             'gecko': {
-                'id': 'youtube-interaction-manager@fastfingertips',
-                'strict_min_version': '109.0'
+                'id': final_id,
+                'strict_min_version': gecko.get('strict_min_version', '109.0')
             }
         }
         
@@ -174,7 +149,7 @@ class ReleaseBuilder:
     """Handles the creation of release packages for Chrome extensions."""
     
     # Core extension files (required for Chrome Web Store)
-    CHROME_FILES = [MANIFEST_FILE, 'src']
+    CHROME_FILES = [MANIFEST_FILE, 'src', 'assets']
     
     # Documentation files (added for GitHub release)
     DOCS_FILES = ['README.md', 'PRIVACY.md', 'LICENSE', 'CHANGELOG.md']
@@ -187,22 +162,25 @@ class ReleaseBuilder:
         '*.zip', '*.pyc', '.DS_Store', 'Thumbs.db'
     ]
     
-    def __init__(self, project_root: Optional[Path] = None):
+    def __init__(self, project_root: Optional[str] = None):
         """Initialize builder with project root directory."""
-        # Script is in scripts/, so go up one level for project root
-        self.project_root = project_root or Path(__file__).resolve().parent.parent
+        if project_root:
+            self.project_root = Path(project_root).resolve()
+        elif (Path.cwd() / MANIFEST_FILE).exists():
+            self.project_root = Path.cwd()
+        else:
+            print(f"Error: Could not find {MANIFEST_FILE} in current directory.")
+            print("Please run from project root or provide --path.")
+            raise SystemExit(1)
+
         self.output_dir = self.project_root / 'releases'
-        
-        # Load manifest
         self.manifest = Manifest(self.project_root / MANIFEST_FILE)
     
     def _should_exclude(self, path: Path) -> bool:
         """Check if a path should be excluded from the package."""
         name = path.name
-        # Match against patterns (supports *extension) or check parent directory names
         matches_pattern = any(name.endswith(p[1:]) if p.startswith('*') else name == p for p in self.EXCLUDE_PATTERNS)
         in_hidden_dir = any(part in self.EXCLUDE_PATTERNS for part in path.parts)
-        
         return matches_pattern or in_hidden_dir
 
     def _clean_zip(self, filepath: Path) -> None:
@@ -249,7 +227,7 @@ class ReleaseBuilder:
         """Create package for GitHub Release."""
         return self._create_package(self.CHROME_FILES + self.DOCS_FILES)
     
-    def build_firefox_package(self) -> Path:
+    def build_firefox_package(self, gecko_id: Optional[str] = None) -> Path:
         """Create specialized package for Firefox."""
         filename = f'{self.manifest.slug}-v{self.manifest.version}-firefox.zip'
         filepath = self.output_dir / filename
@@ -258,21 +236,21 @@ class ReleaseBuilder:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir)
             
-            # Copy base files
             for item_name in self.CHROME_FILES:
                 src = self.project_root / item_name
                 dst = tmp_path / item_name
+                if not src.exists():
+                    continue
+                
                 if src.is_dir():
                     shutil.copytree(src, dst, ignore=shutil.ignore_patterns(*self.EXCLUDE_PATTERNS))
                 else:
                     shutil.copy2(src, dst)
             
-            # Patch manifest
-            firefox_manifest = self.manifest.to_firefox_manifest()
+            firefox_manifest = self.manifest.to_firefox_manifest(gecko_id=gecko_id)
             with open(tmp_path / MANIFEST_FILE, 'w', encoding='utf-8') as f:
                 json.dump(firefox_manifest, f, indent=4, ensure_ascii=False)
             
-            # Zip it
             with zipfile.ZipFile(filepath, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for item in tmp_path.rglob('*'):
                     if item.is_file():
@@ -280,7 +258,7 @@ class ReleaseBuilder:
         
         return filepath
     
-    def build_all(self, include_firefox: bool = True) -> Dict[str, Any]:
+    def build_all(self, include_firefox: bool = True, gecko_id: Optional[str] = None) -> Dict[str, Any]:
         """Run all build steps."""
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
@@ -298,7 +276,7 @@ class ReleaseBuilder:
         }
         
         if include_firefox:
-            result['paths']['firefox'] = self.build_firefox_package()
+            result['paths']['firefox'] = self.build_firefox_package(gecko_id=gecko_id)
             
         return result
 
@@ -313,13 +291,11 @@ class ReleaseBuilder:
         return f"{size:.1f} TB"
 
     def print_summary(self, result: Dict[str, Any]):
-        """Print build summary in a simple, readable format."""
+        """Print build summary."""
         print(f"\nBuild Complete: {result['info']['name']} (v{result['info']['version']})")
         print("-" * 60)
-        
         for platform, path in result['paths'].items():
             print(f"{platform.capitalize():<10} : {path.name} ({self.format_size(path)})")
-            
         print("-" * 60)
         print(f"Output     : {result['output_dir']}\n")
 
@@ -327,22 +303,32 @@ class ReleaseBuilder:
 def main():
     """Entry point for the release builder."""
     parser = argparse.ArgumentParser(description='Build release packages for browser extensions')
+    parser.add_argument('--path', help='Path to extension project (default: current dir)')
     parser.add_argument('--bump', choices=['major', 'minor', 'patch'], help='Bump version')
+    parser.add_argument('--id', help='Firefox Gecko ID (e.g. app@example.com)')
     parser.add_argument('--no-firefox', action='store_true', help='Exclude Firefox package')
     parser.add_argument('--no-open', action='store_true', help='Do not open output folder')
     
     args = parser.parse_args()
-    builder = ReleaseBuilder()
     
-    if args.bump:
-        old_v, new_v = builder.manifest.bump_version(args.bump)
-        print(f"Version bumped: {old_v} -> {new_v}\n")
-    
-    result = builder.build_all(include_firefox=not args.no_firefox)
-    builder.print_summary(result)
-    
-    if not args.no_open and os.name == 'nt':
-        os.startfile(result['output_dir'])
+    try:
+        builder = ReleaseBuilder(project_root=args.path)
+        
+        if args.bump:
+            old_v, new_v = builder.manifest.bump_version(args.bump)
+            print(f"Version bumped: {old_v} -> {new_v}\n")
+        
+        result = builder.build_all(
+            include_firefox=not args.no_firefox,
+            gecko_id=args.id
+        )
+        builder.print_summary(result)
+        
+        if not args.no_open and os.name == 'nt':
+            os.startfile(result['output_dir'])
+    except Exception as e:
+        print(f"Build failed: {e}")
+        raise SystemExit(1)
 
 
 if __name__ == '__main__':
