@@ -1,0 +1,59 @@
+name: Release Builder
+description: Builds release packages for a browser extension using tools/builder.
+
+inputs:
+  project-path:
+    description: Path to the extension project root (must contain manifest.json).
+    required: true
+  bump:
+    description: Version bump type - major, minor, or patch.
+    required: false
+    default: ''
+  gecko-id:
+    description: Firefox Gecko extension ID (e.g. app@example.com).
+    required: false
+    default: ''
+  no-firefox:
+    description: Set to 'true' to skip Firefox package generation.
+    required: false
+    default: 'false'
+
+outputs:
+  version:
+    description: The extension version that was built.
+    value: ${{ steps.build.outputs.version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Build release packages
+      id: build
+      shell: bash
+      run: |
+        ARGS="--path ${{ inputs.project-path }}"
+
+        if [ -n "${{ inputs.bump }}" ]; then
+          ARGS="$ARGS --bump ${{ inputs.bump }}"
+        fi
+
+        if [ -n "${{ inputs.gecko-id }}" ]; then
+          ARGS="$ARGS --id ${{ inputs.gecko-id }}"
+        fi
+
+        if [ "${{ inputs.no-firefox }}" = "true" ]; then
+          ARGS="$ARGS --no-firefox"
+        fi
+
+        python -m tools.builder $ARGS --no-open
+
+        VERSION=$(python -c "
+        import json, pathlib
+        m = json.loads(pathlib.Path('${{ inputs.project-path }}/manifest.json').read_text())
+        print(m.get('version', '0.0.0'))
+        ")
+        echo "version=$VERSION" >> $GITHUB_OUTPUT

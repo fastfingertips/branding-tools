@@ -1,49 +1,41 @@
 # Branding Tools
 
-Shared utility scripts and packages for managing browser extension builds.
+Shared utility packages for managing browser extension builds and branding assets.
 
-## Directory Structure
+## Tools
 
-- `tools/builder`: Python package for building extension releases.
-- `tools/icons`: Node.js package for generating extension icons.
+| Tool | Language | Description |
+|---|---|---|
+| [`tools/builder`](tools/builder/README.md) | Python | Builds Chrome, Firefox and GitHub release packages. Handles versioning and manifest conversion. |
+| [`tools/icons`](tools/icons/README.md) | Node.js | Generates extension icons in standard sizes (16, 32, 48, 128) from a single source image. |
 
-## Release Builder (Python)
+## CI Status
 
-A release builder for browser extensions that generates optimized ZIP packages for Chrome Web Store, Firefox (AMO), and GitHub Releases.
+![CI](https://github.com/fastfingertips/branding-tools/actions/workflows/ci.yml/badge.svg)
 
-### Features
+## Reusable Actions
 
-- Automated version bumping across manifest files.
-- Manifest conversion for Firefox compatibility (handles service_worker to background.scripts).
-- Automatic slug generation from extension name.
-- Configurable exclusion patterns (git, node_modules, etc.).
+Both tools are available as GitHub Composite Actions for use in other repositories:
 
-### Usage
-
-Run from the root of your extension project:
-
-```bash
-python -m tools.builder --path . --bump patch
+**Release Builder:**
+```yaml
+- uses: fastfingertips/branding-tools/.github/actions/release-builder@master
+  with:
+    project-path: '.'
+    bump: patch
 ```
 
-### Arguments
-
-- `--bump [major|minor|patch]`: Increment the version number before building.
-- `--no-firefox`: Skip Firefox package generation.
-- `--no-open`: Do not open the output folder after build (Windows only).
-- `--path`: Path to the extension project.
-
-## Icon Generator (Node.js)
-
-A Sharp-based tool for generating extension icons in standard sizes (16, 32, 48, 128).
-
-### Usage
-
-```bash
-cd tools/icons
-npm install
-node index.js <source_image> <output_dir>
+**Icon Generator:**
+```yaml
+- uses: fastfingertips/branding-tools/.github/actions/icon-generator@master
+  with:
+    source-image: 'assets/icon.png'
+    output-dir: 'assets/icons'
 ```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
