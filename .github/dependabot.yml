@@ -1,0 +1,26 @@
+# To get started with Dependabot version updates, you can create a 
+# dependabot.yml configuration file. 
+# For more information, please see the documentation:
+# https://docs.github.com/github/administering-a-repository/enabling-and-disabling-version-updates
+
+version: 2
+updates:
+  # Enable version updates for npm (Node.js)
+  - package-ecosystem: "npm"
+    directory: "/tools/icons" # Location of package.json
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # Enable version updates for pip (Python)
+  - package-ecosystem: "pip"
+    directory: "/tools/builder" # Location of requirements.txt
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # Keep GitHub Actions (CI/Actions) up to date
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
