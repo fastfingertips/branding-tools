@@ -1,0 +1,32 @@
+name: Icon Generator
+description: Generates extension icons in standard sizes (16, 32, 48, 128) from a source image.
+
+inputs:
+  source-image:
+    description: Path to the source PNG image.
+    required: true
+  output-dir:
+    description: Directory to write generated icons.
+    required: false
+    default: './icons'
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        cd ${{ github.action_path }}/../../../tools/icons
+        npm install
+
+    - name: Generate icons
+      shell: bash
+      run: |
+        node ${{ github.action_path }}/../../../tools/icons/index.js \
+          ${{ inputs.source-image }} \
+          ${{ inputs.output-dir }}
