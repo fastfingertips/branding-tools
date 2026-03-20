@@ -1,6 +1,6 @@
 # tools/builder
 
-Python package for building and packaging browser extension releases.
+Builds and packages browser extension releases.
 
 ## Prerequisites
 

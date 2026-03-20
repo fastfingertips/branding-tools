@@ -1,6 +1,6 @@
 # Branding Tools
 
-Shared utility packages for managing browser extension builds and branding assets.
+Tools for browser extension builds and assets.
 
 ## Tools
 

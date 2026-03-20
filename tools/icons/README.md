@@ -1,6 +1,6 @@
 # tools/icons
 
-Node.js package that generates extension icons in standard sizes from a single source image.
+Generates extension icons from a PNG image.
 
 ## Prerequisites
 
