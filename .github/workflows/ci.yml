@@ -40,8 +40,14 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Install dependencies
+      - name: Install dependencies (Icons)
         run: cd tools/icons && npm install
 
-      - name: Run lint
+      - name: Run lint (Icons)
         run: cd tools/icons && npm run lint
+
+      - name: Install dependencies (Downloader)
+        run: cd tools/downloader && npm install
+
+      - name: Run lint (Downloader)
+        run: cd tools/downloader && npm run lint

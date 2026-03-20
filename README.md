@@ -8,6 +8,7 @@ Tools for browser extension builds and assets.
 |---|---|---|
 | [`tools/builder`](tools/builder/README.md) | Python | Builds Chrome, Firefox and GitHub release packages. Handles versioning and manifest conversion. |
 | [`tools/icons`](tools/icons/README.md) | Node.js | Generates extension icons in standard sizes (16, 32, 48, 128) from a single source image. |
+| [`tools/downloader`](tools/downloader/README.md) | Node.js | Scrapes and downloads CSS/JS assets from a site or list of URLs. |
 
 ## CI Status
 
@@ -31,6 +32,15 @@ Both tools are available as GitHub Composite Actions for use in other repositori
   with:
     source-image: 'assets/icon.png'
     output-dir: 'assets/icons'
+
+**Asset Downloader:**
+```yaml
+- uses: fastfingertips/branding-tools/.github/actions/asset-downloader@master
+  with:
+    site-url: 'https://example.com'
+    output-dir: 'assets/external'
+    merge-css: 'external-styles.css'
+```
 ```
 
 ## License

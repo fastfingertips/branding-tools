@@ -1,0 +1,53 @@
+name: Asset Downloader
+description: Scrapes and downloads CSS/JS assets from a site or list of URLs.
+
+inputs:
+  site-url:
+    description: URL of the site to scan for assets.
+    required: false
+    default: ''
+  asset-urls:
+    description: Comma-separated list of asset URLs to download.
+    required: false
+    default: ''
+  output-dir:
+    description: Directory to write downloaded assets.
+    required: false
+    default: './downloaded-assets'
+  merge-css:
+    description: Filename to merge all downloaded CSS into.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '24'
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        cd ${{ github.action_path }}/../../../tools/downloader
+        npm install
+
+    - name: Download assets
+      shell: bash
+      run: |
+        ARGS=""
+        if [ -n "${{ inputs.site-url }}" ]; then
+          ARGS="$ARGS --site ${{ inputs.site-url }}"
+        fi
+        if [ -n "${{ inputs.asset-urls }}" ]; then
+          ARGS="$ARGS --urls ${{ inputs.asset-urls }}"
+        fi
+        if [ -n "${{ inputs.output-dir }}" ]; then
+          ARGS="$ARGS --out ${{ inputs.output-dir }}"
+        fi
+        if [ -n "${{ inputs.merge-css }}" ]; then
+          ARGS="$ARGS --merge ${{ inputs.merge-css }}"
+        fi
+
+        node ${{ github.action_path }}/../../../tools/downloader/index.js $ARGS
