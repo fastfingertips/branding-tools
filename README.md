@@ -1,50 +1,49 @@
 # Branding Tools
 
-This repository contains shared utility scripts for managing and building browser extensions.
+Shared utility scripts and packages for managing browser extension builds.
 
-## Tools
+## Directory Structure
 
-### build_release.py
+- `tools/builder`: Python package for building extension releases.
+- `tools/icons`: Node.js package for generating extension icons.
 
-A professional-grade release builder for browser extensions that generates optimized ZIP packages for Chrome Web Store, Firefox (AMO), and GitHub Releases.
+## Release Builder (Python)
 
-#### Features
+A release builder for browser extensions that generates optimized ZIP packages for Chrome Web Store, Firefox (AMO), and GitHub Releases.
 
-- **Automated Version Bumping**: Syncs versions across manifest files.
-- **Cross-Browser Adaptation**: Automatically converts Chrome manifests to Firefox-compatible formats (handles `service_worker` to `background.scripts` conversion).
-- **Slug Generation**: Automatically generates URL-friendly filenames based on extension name.
-- **Smart Exclusions**: Automatically excludes development files (git, vscode, node_modules, etc.) from production builds.
+### Features
 
-#### Usage
+- Automated version bumping across manifest files.
+- Manifest conversion for Firefox compatibility (handles service_worker to background.scripts).
+- Automatic slug generation from extension name.
+- Configurable exclusion patterns (git, node_modules, etc.).
 
-Run the script from the root of your extension project:
+### Usage
+
+Run from the root of your extension project:
 
 ```bash
-# Clone the tool into your project or link it
-python path/to/branding-tools/build_release.py --bump patch
+python -m tools.builder --path . --bump patch
 ```
 
-#### Arguments
+### Arguments
 
 - `--bump [major|minor|patch]`: Increment the version number before building.
 - `--no-firefox`: Skip Firefox package generation.
 - `--no-open`: Do not open the output folder after build (Windows only).
-- `--path`: (Soon) Path to the extension project if not running from root.
+- `--path`: Path to the extension project.
 
-## Future Considerations: CRXJS Integration
+## Icon Generator (Node.js)
 
-While this custom toolset is excellent for lightweight, vanilla JS extensions, larger projects might benefit from [CRXJS (Vite-based)](https://github.com/crxjs/chrome-extension-tools).
+A Sharp-based tool for generating extension icons in standard sizes (16, 32, 48, 128).
 
-### When to stay with Branding Tools:
-- **Lightweight**: Simple architecture (Vanilla JS/CSS) with zero build dependencies.
-- **Portability**: No Node.js/npm required; perfect for Python-friendly environments.
-- **Deterministic**: Complete control over exactly what gets zipped into the final package.
-- **Native Experience**: Ideal for developers who prefer the "Browser Native" way without bundler abstractions.
+### Usage
 
-### When to consider CRXJS:
-- **HMR (Hot Module Replacement)**: If you want to see UI/Content Script changes instantly without page refreshes.
-- **Modern Stack**: If you move to React, Svelte, Tailwind CSS, or TypeScript.
-- **Automation**: When you have many dynamic assets that need automatic `web_accessible_resources` mapping.
+```bash
+cd tools/icons
+npm install
+node index.js <source_image> <output_dir>
+```
 
 ## License
 
