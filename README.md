@@ -33,10 +33,6 @@ Both tools are available as GitHub Composite Actions for use in other repositori
     output-dir: 'assets/icons'
 ```
 
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md).
-
 ## License
 
 MIT
