@@ -16,9 +16,9 @@ Tools for browser extension builds and assets.
 
 ## Reusable Actions
 
-Both tools are available as GitHub Composite Actions for use in other repositories:
+These tools are available as GitHub Composite Actions for use in other repositories:
 
-**Release Builder:**
+### Release Builder
 ```yaml
 - uses: fastfingertips/branding-tools/.github/actions/release-builder@master
   with:
@@ -26,21 +26,21 @@ Both tools are available as GitHub Composite Actions for use in other repositori
     bump: patch
 ```
 
-**Icon Generator:**
+### Icon Generator
 ```yaml
 - uses: fastfingertips/branding-tools/.github/actions/icon-generator@master
   with:
     source-image: 'assets/icon.png'
     output-dir: 'assets/icons'
+```
 
-**Asset Downloader:**
+### Asset Downloader
 ```yaml
 - uses: fastfingertips/branding-tools/.github/actions/asset-downloader@master
   with:
     site-url: 'https://example.com'
     output-dir: 'assets/external'
     merge-css: 'external-styles.css'
-```
 ```
 
 ## License
