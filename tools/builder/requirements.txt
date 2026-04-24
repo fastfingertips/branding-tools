@@ -1,2 +1,2 @@
 # tools/builder/requirements.txt
-ruff>=0.3.0
+ruff>=0.15.11
